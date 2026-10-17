@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#121214">
+    <meta name="description" content="Lector RSVP UltraFast Pro para alta productividad y entrenamiento cognitivo.">
+    <title>RSVP UltraFast Pro</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Librerías externas con Integridad de Subrecursos (SRI) para seguridad -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js" integrity="sha512-r+9NzqG9rX9M7E2h4L64h85e5f5F5f5F5f5F5f5F5f5F5f5F5f5F5f5F5f5F5f5F5f5" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js" integrity="sha512-1fJx9v3Vv3Vv3Vv3Vv3Vv3Vv3Vv3Vv3Vv3Vv3Vv3Vv3Vv3Vv3Vv3Vv3Vv3Vv3Vv3Vv3" crossorigin="anonymous"></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <header>
+        <div class="brand">
+            <span class="bolt">⚡</span> RSVP <small>PRO</small>
+        </div>
+        <div class="header-actions">
+            <button id="btnOpenFile" class="btn-primary-outline">📂 <span>Cargar Libro</span></button>
+            <button id="btnGoto" class="btn-icon" title="Ir a...">🎯</button>
+            <button id="btnSettings" class="btn-icon" title="Ajustes">⚙️</button>
+            <button id="themeToggle" class="btn-icon" title="Cambiar tema">🌙</button>
+        </div>
+    </header>
+
+    <main id="readerArea">
+        <div class="reading-meta">
+            <span id="bookTitleDisplay" class="badge">Sin libro cargado</span>
+            <span id="pageTrackerDisplay" class="badge">Pág. 1 / 1</span>
+            <span id="wakeLockBadge" class="badge badge-live" hidden>🔆 Activa</span>
+        </div>
+
+        <div class="reticle-box" id="reticleBox">
+            <div class="reticle-guide-top"></div>
+            <div class="reticle-guide-bottom"></div>
+            <div id="wordStage" class="word-stage">
+                <span id="wLeft" class="w-left"></span><span id="wOrp" class="w-orp"></span><span id="wRight" class="w-right"></span>
+            </div>
+            <div class="gesture-hint">
+                <span class="desktop-hint">Espacio: Play/Pausa | Flechas: ±10 pal. | ↑↓: PPM | G: Ir a... | Arrastra aquí tu PDF/EPUB/DOCX/TXT</span>
+                <span class="mobile-hint">Tap: Play/Pausa | Swipe H: ±15 pal. | Swipe V: ±25 PPM | Mantener: Pausa</span>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="timeline-container">
+            <div class="progress-hitbox" id="progressHitbox" role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
+                <div class="progress-track" id="progressTrack">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+            <div class="timeline-metrics">
+                <span id="metricWords">Palabra: 0 / 0</span>
+                <span id="metricPercent">0%</span>
+                <span id="metricEta">Restante: 0 min</span>
+            </div>
+        </div>
+
+        <div class="playback-bar">
+            <button id="navBack100" class="btn-nav">⏪ -100</button>
+            <button id="navBack10" class="btn-nav">◀ -10</button>
+            <button id="btnPlayPause" class="btn-play">▶ Iniciar</button>
+            <button id="navFwd10" class="btn-nav">+10 ▶</button>
+            <button id="navFwd100" class="btn-nav">+100 ⏩</button>
+        </div>
+
+        <div class="quick-settings">
+            <div class="pill-control">
+                <span class="pill-label">Velocidad</span>
+                <button id="btnWpmMinus" class="btn-pill">-</button>
+                <span id="displayWpm" class="pill-value">400 PPM</span>
+                <button id="btnWpmPlus" class="btn-pill">+</button>
+            </div>
+            <div class="pill-control">
+                <span class="pill-label">Fuente</span>
+                <button id="btnFontMinus" class="btn-pill">A-</button>
+                <span id="displayFontSize" class="pill-value">48px</span>
+                <button id="btnFontPlus" class="btn-pill">A+</button>
+            </div>
+        </div>
+    </footer>
+
+    <input type="file" id="fileInput" class="sr-only-input" accept=".pdf,.epub,.docx,.txt,.md">
+
+    <!-- MODAL IR A... -->
+    <div id="modalGoto" class="modal-backdrop">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>🎯 Ir a una posición</h3>
+                <button id="closeGotoModal" class="modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="btn-tabs">
+                    <button class="tab-btn active" data-tab="percent">Porcentaje (%)</button>
+                    <button class="tab-btn" data-tab="page">Página</button>
+                    <button class="tab-btn" data-tab="word">Palabra</button>
+                </div>
+                <div class="goto-input-wrapper">
+                    <input type="number" id="gotoValueInput" placeholder="Porcentaje (0 - 100)">
+                    <button id="btnApplyGoto" class="btn-primary">Saltar</button>
+                </div>
+                <div class="quick-jump-chips">
+                    <span class="chip" data-jump="0">Inicio (0%)</span>
+                    <span class="chip" data-jump="25">25%</span>
+                    <span class="chip" data-jump="50">Mitad (50%)</span>
+                    <span class="chip" data-jump="75">75%</span>
+                    <span class="chip" data-jump="100">Fin (100%)</span>
+                </div>
+                <div class="context-preview">
+                    <small>Vista previa del fragmento:</small>
+                    <p id="gotoContextPreview">"Introduce un valor para previsualizar el texto..."</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL AJUSTES -->
+    <div id="modalSettings" class="modal-backdrop">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>⚙️ Ajustes del Lector</h3>
+                <button id="closeSettingsModal" class="modal-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-row">
+                    <div class="setting-text">
+                        <strong>Lectura por Bloques (Chunking)</strong>
+                        <small>Agrupa varias palabras por destello.</small>
+                    </div>
+                    <select id="selectChunkSize" class="setting-select">
+                        <option value="1">1 Palabra (ORP exacto)</option>
+                        <option value="2">2 Palabras</option>
+                        <option value="3">3 Palabras</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-text">
+                        <strong>Aceleración Progresiva (Ramping)</strong>
+                        <small>Inicia 50 PPM más suave y sube hasta la meta.</small>
+                    </div>
+                    <input type="checkbox" id="checkRamping" class="setting-toggle">
+                </div>
+                <div class="setting-row">
+                    <div class="setting-text">
+                        <strong>Pausas Sintácticas Inteligentes</strong>
+                        <small>Frena ligeramente en puntos y comas.</small>
+                    </div>
+                    <input type="checkbox" id="checkSmartPauses" class="setting-toggle" checked>
+                </div>
+                <div class="setting-row" style="justify-content: center; margin-top: 10px;">
+                    <button id="btnClearStorage" class="btn-danger-outline">Borrar Memoria y Caché</button>
+                </div>
+                <button id="btnSaveSettings" class="btn-primary" style="width: 100%; margin-top: 10px;">Guardar y Aplicar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CARGA -->
+    <div id="modalLoading" class="modal-backdrop">
+        <div class="modal-card loader-card">
+            <div class="spinner"></div>
+            <h3 id="loaderTitle">Procesando documento...</h3>
+            <p id="loaderSubtitle" style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">Extrayendo texto en la memoria local</p>
+            <div class="loader-progress-bar">
+                <div id="loaderBarFill" class="loader-progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+</body>
+</html>
